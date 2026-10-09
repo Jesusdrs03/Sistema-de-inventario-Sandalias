@@ -44,11 +44,11 @@ Los permisos se aplican en la interfaz **y** en la base de datos mediante las re
 
 ## Probarlo ya (modo demostración)
 
-Si no se configuran las variables de Firebase, el sistema arranca en **modo demostración** con datos de ejemplo guardados en el navegador. En la pantalla de inicio de sesión hay botones para entrar con cada rol (contraseña `demo123`).
+Con `NEXT_PUBLIC_DEMO_MODE=true` el sistema arranca en **modo demostración** con datos de ejemplo guardados en el navegador. En la pantalla de inicio de sesión hay botones para entrar con cada rol (contraseña `demo123`).
 
 ```bash
 npm install
-npm run dev
+NEXT_PUBLIC_DEMO_MODE=true npm run dev
 # abre http://localhost:3000
 ```
 
@@ -67,24 +67,17 @@ npm run dev
 
 ### 2. Publicar en Vercel (gratis)
 
-1. Entra a <https://vercel.com/new> e importa este repositorio de GitHub.
-2. En **Environment Variables** agrega (con los valores del paso 1.5):
+> ✅ El proyecto Firebase **mr-calzados** ya está configurado: la configuración web está incluida en `src/lib/firebase.ts`, las reglas de seguridad están publicadas y el acceso por correo/contraseña está activo. **No hace falta cargar variables de entorno en Vercel.**
 
-   | Variable | Valor |
-   |---|---|
-   | `NEXT_PUBLIC_FIREBASE_API_KEY` | `apiKey` |
-   | `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | `authDomain` |
-   | `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | `projectId` |
-   | `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` | `storageBucket` |
-   | `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | `messagingSenderId` |
-   | `NEXT_PUBLIC_FIREBASE_APP_ID` | `appId` |
+1. Entra a <https://vercel.com/new>, inicia sesión con GitHub e importa este repositorio.
+2. Pulsa **Deploy**. Vercel te dará una URL tipo `https://tu-proyecto.vercel.app`.
+3. En Firebase → **Authentication → Configuración → Dominios autorizados → Agregar dominio**, agrega ese dominio de Vercel (sin `https://`).
 
-3. Pulsa **Deploy**. Vercel te dará una URL tipo `https://tu-proyecto.vercel.app`.
-4. En Firebase → **Authentication → Configuración → Dominios autorizados**, agrega ese dominio de Vercel.
+Para usar otro proyecto Firebase, define las variables `NEXT_PUBLIC_FIREBASE_*` (ver `.env.example`); tienen prioridad sobre la configuración incluida. Para ver el modo demostración usa `NEXT_PUBLIC_DEMO_MODE=true`.
 
 ### 3. Primer uso
 
-Abre la URL: como la base de datos está vacía, aparecerá **Configuración inicial** para crear la cuenta del **administrador principal**. Luego:
+Abre la URL **apenas publiques** (la primera persona que entre crea la cuenta de administrador): como la base de datos está vacía, aparecerá **Configuración inicial** para crear la cuenta del **administrador principal**. Luego:
 
 1. **Configuración** → datos de la empresa, RIF, IVA/IGTF y datos de Pago Móvil/Zelle/Binance.
 2. **Usuarios y roles** → crea las cuentas de tus empleados.

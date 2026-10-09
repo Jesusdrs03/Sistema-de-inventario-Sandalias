@@ -2,16 +2,33 @@ import { initializeApp, getApps, type FirebaseApp, type FirebaseOptions } from "
 import { getFirestore, connectFirestoreEmulator, type Firestore } from "firebase/firestore";
 import { getAuth, connectAuthEmulator, type Auth } from "firebase/auth";
 
-const config: FirebaseOptions = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+/**
+ * Configuración web del proyecto Firebase "mr-calzados".
+ * Estos valores son públicos por diseño (van en el navegador); la seguridad la dan
+ * Firebase Authentication y las reglas de firestore.rules.
+ * Se pueden sobrescribir con variables NEXT_PUBLIC_FIREBASE_* (por ejemplo, para pruebas).
+ * Para forzar el modo demostración: NEXT_PUBLIC_DEMO_MODE=true.
+ */
+const DEFAULT_CONFIG: FirebaseOptions = {
+  apiKey: "AIzaSyCZMLAFT9o123ukI1KyoLsRCyVwOabtQKw",
+  authDomain: "mr-calzados.firebaseapp.com",
+  projectId: "mr-calzados",
+  storageBucket: "mr-calzados.firebasestorage.app",
+  messagingSenderId: "723084576679",
+  appId: "1:723084576679:web:8c3871a9c32d7278071882",
 };
 
-export const firebaseEnabled = Boolean(config.apiKey && config.projectId);
+const config: FirebaseOptions = {
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || DEFAULT_CONFIG.apiKey,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || DEFAULT_CONFIG.authDomain,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || DEFAULT_CONFIG.projectId,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || DEFAULT_CONFIG.storageBucket,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || DEFAULT_CONFIG.messagingSenderId,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || DEFAULT_CONFIG.appId,
+};
+
+export const firebaseEnabled =
+  process.env.NEXT_PUBLIC_DEMO_MODE !== "true" && Boolean(config.apiKey && config.projectId);
 
 export function getFirebaseApp(): FirebaseApp {
   return getApps().find((a) => a.name === "[DEFAULT]") ?? initializeApp(config);
