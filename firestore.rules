@@ -1,0 +1,102 @@
+rules_version = '2';
+
+// Reglas de seguridad de SandaliaPro.
+// Cada usuario tiene un documento en /users/{uid} con su rol: admin | gerente | vendedor | almacen.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function userPath() { return /databases/$(database)/documents/users/$(request.auth.uid); }
+    function profile() { return get(userPath()).data; }
+    function active() { return signedIn() && exists(userPath()) && profile().active == true; }
+    function hasRole(roles) { return active() && profile().role in roles; }
+    function onlyChanges(keys) { return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys); }
+    function setupPath() { return /databases/$(database)/documents/meta/setup; }
+
+    // ---------- Usuarios ----------
+    match /users/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || hasRole(['admin']));
+      // El primer administrador se crea junto con meta/setup (configuración inicial)
+      allow create: if hasRole(['admin'])
+        || (signedIn() && request.auth.uid == uid
+            && request.resource.data.role == 'admin'
+            && !exists(setupPath()) && existsAfter(setupPath()));
+      // Un admin no puede cambiar su propio rol ni desactivarse
+      allow update: if hasRole(['admin']) && (uid != request.auth.uid || onlyChanges(['name']));
+      allow delete: if false;
+    }
+
+    // ---------- Metadatos ----------
+    match /meta/setup {
+      allow read: if true;
+      allow create: if signedIn() && !exists(setupPath());
+      allow update, delete: if false;
+    }
+    match /meta/settings {
+      allow read: if active();
+      allow write: if hasRole(['admin']);
+    }
+    match /meta/counters {
+      allow read, write: if active();
+    }
+
+    // ---------- Inventario ----------
+    match /products/{id} {
+      allow read: if active();
+      allow create: if hasRole(['admin', 'gerente', 'almacen']);
+      // Los vendedores solo pueden descontar stock (al vender)
+      allow update: if hasRole(['admin', 'gerente', 'almacen'])
+        || (hasRole(['vendedor']) && onlyChanges(['sizes', 'updatedAt']));
+      allow delete: if hasRole(['admin']);
+    }
+    match /materials/{id} {
+      allow read, create, update: if hasRole(['admin', 'gerente', 'almacen']);
+      allow delete: if hasRole(['admin']);
+    }
+    match /movements/{id} {
+      allow read: if hasRole(['admin', 'gerente', 'almacen']);
+      allow create: if active();
+      allow update, delete: if false;
+    }
+    match /production/{id} {
+      allow read, create, update: if hasRole(['admin', 'gerente', 'almacen']);
+      allow delete: if hasRole(['admin']);
+    }
+    match /suppliers/{id} {
+      allow read, create, update: if hasRole(['admin', 'gerente', 'almacen']);
+      allow delete: if hasRole(['admin']);
+    }
+
+    // ---------- Ventas ----------
+    match /sales/{id} {
+      allow read: if hasRole(['admin', 'gerente', 'vendedor']);
+      allow create: if hasRole(['admin', 'gerente', 'vendedor'])
+        && request.resource.data.sellerId == request.auth.uid;
+      // Vendedores solo registran abonos; anular es de admin/gerente
+      allow update: if hasRole(['admin', 'gerente'])
+        || (hasRole(['vendedor'])
+            && onlyChanges(['payments', 'paidUSD', 'balanceUSD', 'status'])
+            && request.resource.data.status in ['credito', 'pagada']);
+      allow delete: if false;
+    }
+    match /cashflow/{id} {
+      allow read, create: if hasRole(['admin', 'gerente', 'vendedor']);
+      allow update, delete: if false;
+    }
+    match /clients/{id} {
+      allow read, create, update: if hasRole(['admin', 'gerente', 'vendedor']);
+      allow delete: if hasRole(['admin']);
+    }
+
+    // ---------- Administración ----------
+    match /expenses/{id} {
+      allow read, create: if hasRole(['admin', 'gerente']);
+      allow update, delete: if hasRole(['admin']);
+    }
+    match /rates/{day} {
+      allow read: if active();
+      allow create, update: if active();
+      allow delete: if false;
+    }
+  }
+}
