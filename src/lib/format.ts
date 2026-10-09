@@ -79,3 +79,22 @@ export const waLink = (phone?: string) => {
   if (p.startsWith("0")) p = "58" + p.slice(1);
   return `https://wa.me/${p}`;
 };
+
+export const onlyDigits = (s?: string) => (s ?? "").replace(/\D/g, "");
+
+/**
+ * Interpreta lo escrito en el buscador de clientes para precargar el registro:
+ * teléfono (0414…/58414…), cédula/RIF (V-, E-, J-… o solo números) o nombre.
+ */
+export function guessClientFields(q: string): { name?: string; docId?: string; phone?: string } {
+  const t = q.trim();
+  const d = onlyDigits(t);
+  if (/^(\+?58|0)4\d{2}/.test(t.replace(/[\s-]/g, "")) && d.length >= 10) {
+    const local = d.startsWith("58") ? "0" + d.slice(2) : d;
+    return { phone: local.length === 11 ? `${local.slice(0, 4)}-${local.slice(4)}` : local };
+  }
+  const doc = t.match(/^([VEJGP])[\s.-]*([\d.\-]+)$/i);
+  if (doc) return { docId: `${doc[1].toUpperCase()}-${onlyDigits(doc[2])}` };
+  if (/^[\d.\s-]+$/.test(t) && d.length >= 5 && d.length <= 9) return { docId: `V-${d}` };
+  return { name: t };
+}

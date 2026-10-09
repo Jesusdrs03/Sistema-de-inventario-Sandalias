@@ -8,7 +8,7 @@ import { ClientFormModal } from "@/components/client-form";
 import { ReceiptModal } from "@/components/receipt";
 import { MethodButtons, PaymentRow, draftToPayment, type DraftPayment } from "@/components/payment-editor";
 import { CATEGORIES, PAYMENT_METHODS } from "@/lib/constants";
-import { fmtBs, fmtNum, fmtUSD, parseNum, round2, sortSizes, totalStock } from "@/lib/format";
+import { fmtBs, fmtNum, fmtUSD, guessClientFields, onlyDigits, parseNum, round2, sortSizes, totalStock } from "@/lib/format";
 import { computeTotals, createSale, suggestAmount } from "@/lib/services";
 import { db } from "@/lib/db";
 import type { Client, PaymentMethod, Product, Sale, SaleItem } from "@/lib/types";
@@ -96,9 +96,23 @@ export default function POSPage() {
     if (c) changePriceType(c.type === "mayorista" ? "mayor" : "detal");
   };
 
-  const clientMatches = clientQ.trim()
-    ? clients.filter((c) => `${c.name} ${c.docId}`.toLowerCase().includes(clientQ.toLowerCase())).slice(0, 6)
-    : [];
+  const clientMatches = useMemo(() => {
+    const q = clientQ.trim().toLowerCase();
+    if (!q) return [];
+    const qd = onlyDigits(q);
+    return clients
+      .filter(
+        (c) =>
+          `${c.name} ${c.docId} ${c.phone ?? ""}`.toLowerCase().includes(q) ||
+          (qd.length >= 4 && (onlyDigits(c.docId).includes(qd) || onlyDigits(c.phone).replace(/^58/, "0").includes(qd.replace(/^58/, "0")))),
+      )
+      .slice(0, 6);
+  }, [clients, clientQ]);
+  const [newClientInit, setNewClientInit] = useState<Partial<Client>>({});
+  const registerFromSearch = () => {
+    setNewClientInit(clientQ.trim() ? guessClientFields(clientQ) : {});
+    setNewClient(true);
+  };
 
   const clear = () => {
     setCart([]);
@@ -199,8 +213,19 @@ export default function POSPage() {
           ) : (
             <div className="relative">
               <div className="flex gap-2">
-                <input className="input" placeholder="Cliente (nombre o cédula)…" value={clientQ} onChange={(e) => setClientQ(e.target.value)} />
-                <button className="btn-secondary px-3" onClick={() => setNewClient(true)} title="Nuevo cliente" aria-label="Nuevo cliente">
+                <input
+                  className="input"
+                  placeholder="Cliente (nombre, cédula o teléfono)…"
+                  value={clientQ}
+                  onChange={(e) => setClientQ(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key !== "Enter" || !clientQ.trim()) return;
+                    e.preventDefault();
+                    if (clientMatches.length === 1) pickClient(clientMatches[0]);
+                    else if (!clientMatches.length) registerFromSearch();
+                  }}
+                />
+                <button className="btn-secondary px-3" onClick={registerFromSearch} title="Nuevo cliente" aria-label="Nuevo cliente">
                   <UserPlus className="h-4 w-4" />
                 </button>
               </div>
@@ -209,11 +234,26 @@ export default function POSPage() {
                   {clientMatches.map((c) => (
                     <li key={c.id}>
                       <button className="w-full px-3 py-2 text-left text-sm hover:bg-slate-50 dark:hover:bg-slate-700" onClick={() => pickClient(c)}>
-                        {c.name} <span className="text-xs text-slate-500">{c.docId}</span>
+                        {c.name} <span className="text-xs text-slate-500">{c.docId}{c.phone ? ` · ${c.phone}` : ""}</span>
                       </button>
                     </li>
                   ))}
+                  <li className="border-t dark:border-slate-700">
+                    <button className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-900/20" onClick={registerFromSearch}>
+                      <UserPlus className="h-4 w-4" /> Registrar otro cliente
+                    </button>
+                  </li>
                 </ul>
+              )}
+              {clientQ.trim() && clientMatches.length === 0 && (
+                <div className="absolute z-10 mt-1 w-full rounded-xl border bg-white p-3 shadow-lg dark:bg-slate-800">
+                  <p className="text-sm text-slate-500">
+                    No hay ningún cliente con «<b className="text-slate-700 dark:text-slate-200">{clientQ.trim()}</b>».
+                  </p>
+                  <button className="btn-primary btn-sm mt-2 w-full" onClick={registerFromSearch}>
+                    <UserPlus className="h-4 w-4" /> Registrarlo y continuar la venta
+                  </button>
+                </div>
               )}
             </div>
           )}
@@ -306,7 +346,7 @@ export default function POSPage() {
       )}
 
       <SizePicker product={picking} onClose={() => setPicking(null)} onAdd={addToCart} />
-      <ClientFormModal open={newClient} onClose={() => setNewClient(false)} onSaved={(c) => pickClient(c)} />
+      <ClientFormModal open={newClient} initial={newClientInit} onClose={() => setNewClient(false)} onSaved={(c) => pickClient(c)} />
       {payOpen && (
         <PaymentModal
           cart={cart}

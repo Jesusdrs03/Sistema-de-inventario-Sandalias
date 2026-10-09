@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { db } from "@/lib/db";
 import { Field, Modal, Spinner } from "./ui";
 import { useToast } from "./providers";
@@ -7,29 +7,39 @@ import type { Client } from "@/lib/types";
 
 const EMPTY: Omit<Client, "id"> = { name: "", docId: "", phone: "", email: "", address: "", type: "detal" };
 
-export function ClientFormModal({
-  open,
-  onClose,
-  client,
-  onSaved,
-}: {
+type ClientFormProps = {
   open: boolean;
   onClose: () => void;
   client?: Client | null;
+  /** Datos para precargar un cliente nuevo (p. ej. la cédula o el teléfono buscado en el POS) */
+  initial?: Partial<Client>;
   onSaved?: (c: Client) => void;
-}) {
+};
+
+/** Se monta solo al abrirse, para que cada apertura empiece con el formulario limpio */
+export function ClientFormModal(props: ClientFormProps) {
+  return props.open ? <ClientForm {...props} /> : null;
+}
+
+function ClientForm({ open, onClose, client, initial, onSaved }: ClientFormProps) {
   const toast = useToast();
-  const [f, setF] = useState<Omit<Client, "id">>(EMPTY);
+  const [f, setF] = useState<Omit<Client, "id">>(() => (client ? { ...EMPTY, ...client } : { ...EMPTY, ...initial }));
   const [busy, setBusy] = useState(false);
-  useEffect(() => {
-    if (open) setF(client ? { ...EMPTY, ...client } : EMPTY);
-  }, [open, client]);
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
     try {
       const data = { ...f, name: f.name.trim(), docId: f.docId.trim().toUpperCase() };
+      // Evita registrar dos veces la misma cédula/RIF
+      const same = await new Promise<Client[]>((resolve) => {
+        const unsub = db.subscribe<Client>("clients", (r) => {
+          resolve(r);
+          setTimeout(() => unsub(), 0);
+        }, { where: [["docId", "==", data.docId]] }, () => resolve([]));
+      });
+      const dup = same.find((c) => c.id !== client?.id);
+      if (dup) throw new Error(`Ya existe un cliente con la cédula/RIF ${data.docId}: ${dup.name}`);
       let id = client?.id;
       if (id) await db.update("clients", id, data);
       else id = await db.add("clients", { ...data, createdAt: new Date().toISOString() });
