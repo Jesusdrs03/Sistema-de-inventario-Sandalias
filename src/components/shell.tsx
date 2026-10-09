@@ -72,7 +72,7 @@ function ThemeToggle() {
 }
 
 export function Shell({ children }: { children: React.ReactNode }) {
-  const { user, authLoading, mode, settings } = useApp();
+  const { user, authLoading, mode } = useApp();
   const router = useRouter();
   const path = usePathname();
   const [open, setOpen] = useState(false);
@@ -102,8 +102,8 @@ export function Shell({ children }: { children: React.ReactNode }) {
           <Footprints className="h-5 w-5" />
         </div>
         <div className="min-w-0">
-          <p className="font-bold leading-tight">SandaliaPro</p>
-          <p className="truncate text-xs text-slate-500">{settings.businessName}</p>
+          <p className="font-bold leading-tight">MR Calzados</p>
+          <p className="truncate text-xs text-slate-500">Inventario y ventas</p>
         </div>
       </div>
       <div className="flex-1 space-y-5 overflow-y-auto px-3 pb-4">

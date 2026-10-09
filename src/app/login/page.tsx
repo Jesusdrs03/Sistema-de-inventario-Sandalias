@@ -66,7 +66,7 @@ export default function LoginPage() {
           <div className="rounded-2xl bg-white/15 p-3 backdrop-blur">
             <Footprints className="h-7 w-7" />
           </div>
-          <span className="text-2xl font-bold">SandaliaPro</span>
+          <span className="text-2xl font-bold">MR Calzados</span>
         </div>
         <div className="relative space-y-6">
           <h2 className="text-4xl font-bold leading-tight">
@@ -101,7 +101,7 @@ export default function LoginPage() {
             <div className="rounded-2xl bg-brand-600 p-3 text-white">
               <Footprints className="h-6 w-6" />
             </div>
-            <span className="text-2xl font-bold">SandaliaPro</span>
+            <span className="text-2xl font-bold">MR Calzados</span>
           </div>
           <h1 className="text-2xl font-bold">{setup ? "Configuración inicial" : "Iniciar sesión"}</h1>
           <p className="mt-1 text-sm text-slate-500">

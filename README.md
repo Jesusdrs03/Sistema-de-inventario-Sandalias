@@ -1,4 +1,4 @@
-# SandaliaPro · Sistema de inventario y ventas
+# MR Calzados · Sistema de inventario y ventas
 
 Sistema web para **fábrica y tienda de sandalias** en Venezuela: punto de venta con pagos mixtos, inventario por talla, producción, materia prima, cuentas por cobrar, cierre de caja, reportes y **tasa oficial del Dólar BCV actualizada automáticamente**.
 
