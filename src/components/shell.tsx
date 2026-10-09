@@ -8,7 +8,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { useApp } from "./providers";
+import { useApp, useToast } from "./providers";
 import { authApi } from "@/lib/auth";
 import { PERMISSIONS, ROLE_LABELS, type Module } from "@/lib/constants";
 import { fmtNum, fmtDateTime } from "@/lib/format";
@@ -71,6 +71,33 @@ function ThemeToggle() {
   );
 }
 
+/** Cierra la sesión tras IDLE_MINUTES sin actividad (también si la pestaña quedó en segundo plano) */
+const IDLE_MINUTES = 15;
+function useIdleLogout(active: boolean) {
+  const toast = useToast();
+  useEffect(() => {
+    if (!active) return;
+    let last = Date.now();
+    const touch = () => (last = Date.now());
+    const check = () => {
+      if (Date.now() - last > IDLE_MINUTES * 60_000) {
+        authApi.logout();
+        toast(`Sesión cerrada por ${IDLE_MINUTES} minutos de inactividad`, "info");
+      }
+    };
+    const events = ["mousemove", "mousedown", "keydown", "touchstart", "scroll"];
+    events.forEach((e) => window.addEventListener(e, touch, { passive: true }));
+    const onVisible = () => document.visibilityState === "visible" && check();
+    document.addEventListener("visibilitychange", onVisible);
+    const t = setInterval(check, 30_000);
+    return () => {
+      events.forEach((e) => window.removeEventListener(e, touch));
+      document.removeEventListener("visibilitychange", onVisible);
+      clearInterval(t);
+    };
+  }, [active, toast]);
+}
+
 export function Shell({ children }: { children: React.ReactNode }) {
   const { user, authLoading, mode } = useApp();
   const router = useRouter();
@@ -81,6 +108,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
     if (!authLoading && !user) router.replace("/login");
   }, [authLoading, user, router]);
   useEffect(() => setOpen(false), [path]);
+  useIdleLogout(!!user);
 
   if (authLoading || !user)
     return (

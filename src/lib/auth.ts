@@ -109,7 +109,7 @@ function demoAuth(): AuthAPI {
         unsubUser = null;
         let uid: string | null = null;
         try {
-          uid = window.localStorage.getItem(SESSION_KEY);
+          uid = window.sessionStorage.getItem(SESSION_KEY);
         } catch {}
         if (!uid) return cb(null);
         unsubUser = db.subscribeDoc<AppUser>("users", uid, (u) => {
@@ -127,11 +127,11 @@ function demoAuth(): AuthAPI {
     async login(email, password) {
       const a = await db.getDoc<{ uid: string; password: string }>("_auth", email.trim().toLowerCase());
       if (!a || a.password !== password) throw { code: "auth/invalid-credential" };
-      window.localStorage.setItem(SESSION_KEY, a.uid);
+      window.sessionStorage.setItem(SESSION_KEY, a.uid);
       notify();
     },
     async logout() {
-      window.localStorage.removeItem(SESSION_KEY);
+      window.sessionStorage.removeItem(SESSION_KEY);
       notify();
     },
     async createUser(name, email, password, role) {
