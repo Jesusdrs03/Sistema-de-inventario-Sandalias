@@ -84,15 +84,29 @@ function AppProvider({ children }: { children: React.ReactNode }) {
   const userRef = useRef<AppUser | null>(null);
   userRef.current = user;
 
-  useEffect(
-    () =>
-      authApi.onChange((u, err) => {
+  useEffect(() => {
+    // Si se llega a la página saliendo de otra (no por recargar), se cierra la sesión anterior
+    const nav = performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined;
+    const leftAndCameBack = nav ? nav.type !== "reload" : false;
+    let unsub: (() => void) | null = null;
+    let cancelled = false;
+    (leftAndCameBack ? authApi.logout().catch(() => {}) : Promise.resolve()).then(() => {
+      if (cancelled) return;
+      unsub = authApi.onChange((u, err) => {
         setUser(u);
         setAuthErr(err);
         setAuthLoading(false);
-      }),
-    [],
-  );
+      });
+    });
+    // Volver con el botón "atrás" desde otra página (caché del navegador)
+    const onShow = (e: PageTransitionEvent) => e.persisted && authApi.logout();
+    window.addEventListener("pageshow", onShow);
+    return () => {
+      cancelled = true;
+      unsub?.();
+      window.removeEventListener("pageshow", onShow);
+    };
+  }, []);
 
   // Configuración y última tasa guardada (solo con sesión iniciada)
   useEffect(() => {

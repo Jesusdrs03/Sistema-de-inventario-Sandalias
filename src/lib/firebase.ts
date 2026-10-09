@@ -1,6 +1,6 @@
 import { initializeApp, getApps, type FirebaseApp, type FirebaseOptions } from "firebase/app";
 import { getFirestore, connectFirestoreEmulator, type Firestore } from "firebase/firestore";
-import { getAuth, connectAuthEmulator, type Auth } from "firebase/auth";
+import { getAuth, connectAuthEmulator, setPersistence, browserSessionPersistence, type Auth } from "firebase/auth";
 
 /**
  * Configuración web del proyecto Firebase "mr-calzados".
@@ -58,6 +58,8 @@ export function getAuthFor(app: FirebaseApp): Auth {
   if (!a) {
     a = getAuth(app);
     if (useEmulator) connectAuthEmulator(a, "http://127.0.0.1:9099", { disableWarnings: true });
+    // La sesión vive solo mientras la pestaña esté abierta: al cerrarla hay que volver a iniciar sesión
+    if (typeof window !== "undefined") setPersistence(a, browserSessionPersistence).catch(() => {});
     authInstances.set(app.name, a);
   }
   return a;
