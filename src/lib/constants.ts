@@ -109,7 +109,7 @@ export const VE_BANKS = [
 ];
 
 export const DEFAULT_SETTINGS: Settings = {
-  businessName: "Sandalias Venezuela C.A.",
+  businessName: "MR Calzados",
   rif: "J-00000000-0",
   address: "Venezuela",
   phone: "",

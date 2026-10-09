@@ -3,7 +3,7 @@ import "./globals.css";
 import { Providers } from "@/components/providers";
 
 export const metadata: Metadata = {
-  title: "SandaliaPro · Inventario y Ventas",
+  title: "MR Calzados · Inventario y Ventas",
   description: "Sistema de inventario, producción y ventas para fábrica y tienda de sandalias, con tasa BCV automática.",
   manifest: "/manifest.webmanifest",
   icons: { icon: "/icon.svg" },
