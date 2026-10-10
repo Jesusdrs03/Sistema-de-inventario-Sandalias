@@ -31,6 +31,11 @@ export default function SettingsPage() {
         manualRate: parseNum(f.manualRate),
         sizesDefault: sizes.split(",").map((s) => s.trim()).filter(Boolean),
       });
+      // Datos públicos para las páginas legales (visibles sin iniciar sesión)
+      await db.set("meta", "public", {
+        businessName: f.businessName, rif: f.rif, address: f.address, phone: f.phone, email: f.email,
+        updatedAt: new Date().toISOString(),
+      });
       if (f.rateMode === "manual" && parseNum(f.manualRate) > 0) {
         await db.set("rates", localDay(), { rate: parseNum(f.manualRate), source: "Manual", date: localDay(), fetchedAt: new Date().toISOString() });
       }
@@ -59,6 +64,7 @@ export default function SettingsPage() {
           <Field label="RIF"><input className="input" value={f.rif} onChange={(e) => setF({ ...f, rif: e.target.value })} /></Field>
           <Field label="Dirección"><input className="input" value={f.address} onChange={(e) => setF({ ...f, address: e.target.value })} /></Field>
           <Field label="Teléfono"><input className="input" value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} /></Field>
+          <Field label="Correo de contacto (aparece en Términos y Privacidad)"><input className="input" type="email" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} /></Field>
         </div>
       </Section>
 

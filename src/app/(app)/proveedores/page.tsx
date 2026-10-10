@@ -9,7 +9,7 @@ import { waLink } from "@/lib/format";
 import { db } from "@/lib/db";
 import type { Supplier } from "@/lib/types";
 
-const EMPTY = { name: "", rif: "", phone: "", email: "", contact: "", supplies: "" };
+const EMPTY = { name: "", rif: "", phone: "", email: "", contact: "", supplies: "", address: "" };
 
 export default function SuppliersPage() {
   const { user } = useApp();
@@ -62,6 +62,7 @@ export default function SuppliersPage() {
                 {s.contact && <p><span className="text-slate-400">Contacto:</span> {s.contact}</p>}
                 {s.phone && <p><span className="text-slate-400">Tel:</span> {s.phone}</p>}
                 {s.email && <p><span className="text-slate-400">Correo:</span> {s.email}</p>}
+                {s.address && <p><span className="text-slate-400">Dirección:</span> {s.address}</p>}
               </div>
             </div>
           ))}
@@ -94,15 +95,26 @@ function SupplierForm({ supplier, onClose }: { supplier: Supplier | null; onClos
   useEffect(() => {
     if (supplier) setF({ ...EMPTY, ...supplier });
   }, [supplier]);
+  const locked = !!supplier;
   const set = (k: keyof typeof EMPTY) => (e: React.ChangeEvent<HTMLInputElement>) => setF({ ...f, [k]: e.target.value });
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
     try {
-      const { name, rif, phone, email, contact, supplies } = f;
-      const data = { name: name.trim(), rif: rif.trim().toUpperCase(), phone, email, contact, supplies };
-      if (supplier) await db.update("suppliers", supplier.id, data);
-      else await db.add("suppliers", { ...data, createdAt: new Date().toISOString() });
+      const { name, rif, phone, email, contact, supplies, address } = f;
+      const data = { name: name.trim(), rif: rif.trim().toUpperCase(), phone, email, contact, supplies, address: (address ?? "").trim() };
+      // Una vez registrado, solo se pueden cambiar el teléfono y la dirección
+      if (supplier) await db.update("suppliers", supplier.id, { phone: (phone ?? "").trim(), address: (address ?? "").trim() });
+      else {
+        const dup = await new Promise<Supplier[]>((resolve) => {
+          const unsub = db.subscribe<Supplier>("suppliers", (r) => {
+            resolve(r);
+            setTimeout(() => unsub(), 0);
+          }, { where: [["rif", "==", data.rif]] }, () => resolve([]));
+        });
+        if (dup.length) throw new Error(`Ya existe un proveedor con el RIF ${data.rif}: ${dup[0].name}`);
+        await db.add("suppliers", { ...data, createdAt: new Date().toISOString() });
+      }
       toast("Proveedor guardado");
       onClose();
     } catch (e) {
@@ -114,12 +126,18 @@ function SupplierForm({ supplier, onClose }: { supplier: Supplier | null; onClos
   return (
     <Modal open onClose={onClose} title={supplier ? "Editar proveedor" : "Nuevo proveedor"}>
       <form onSubmit={save} className="grid gap-4 sm:grid-cols-2">
-        <Field label="Razón social *" className="sm:col-span-2"><input className="input" value={f.name} onChange={set("name")} required autoFocus /></Field>
-        <Field label="RIF *"><input className="input" value={f.rif} onChange={set("rif")} placeholder="J-12345678-9" required /></Field>
-        <Field label="Persona de contacto"><input className="input" value={f.contact} onChange={set("contact")} /></Field>
-        <Field label="Teléfono"><input className="input" value={f.phone} onChange={set("phone")} /></Field>
-        <Field label="Correo"><input className="input" type="email" value={f.email} onChange={set("email")} /></Field>
-        <Field label="¿Qué suministra?" className="sm:col-span-2"><input className="input" value={f.supplies} onChange={set("supplies")} /></Field>
+        {locked && (
+          <p className="rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:bg-amber-900/30 dark:text-amber-200 sm:col-span-2">
+            Por seguridad, de un proveedor ya registrado solo se pueden modificar el <b>teléfono</b> y la <b>dirección</b>.
+          </p>
+        )}
+        <Field label="Razón social *" className="sm:col-span-2"><input className="input" value={f.name} onChange={set("name")} required autoFocus={!locked} disabled={locked} /></Field>
+        <Field label="RIF *"><input className="input" value={f.rif} onChange={set("rif")} placeholder="J-12345678-9" required disabled={locked} /></Field>
+        <Field label="Persona de contacto"><input className="input" value={f.contact} onChange={set("contact")} disabled={locked} /></Field>
+        <Field label="Teléfono"><input className="input" value={f.phone} onChange={set("phone")} autoFocus={locked} /></Field>
+        <Field label="Correo"><input className="input" type="email" value={f.email} onChange={set("email")} disabled={locked} /></Field>
+        <Field label="Dirección" className="sm:col-span-2"><input className="input" value={f.address} onChange={set("address")} /></Field>
+        <Field label="¿Qué suministra?" className="sm:col-span-2"><input className="input" value={f.supplies} onChange={set("supplies")} disabled={locked} /></Field>
         <div className="flex justify-end gap-2 sm:col-span-2">
           <button type="button" className="btn-secondary" onClick={onClose}>Cancelar</button>
           <button className="btn-primary" disabled={busy}>{busy && <Spinner className="h-4 w-4 text-white" />} Guardar</button>
