@@ -151,6 +151,7 @@ export interface Supplier {
   email?: string;
   contact?: string;
   supplies?: string;
+  address?: string;
   createdAt?: string;
 }
 
@@ -191,6 +192,7 @@ export interface Settings {
   rif: string;
   address: string;
   phone: string;
+  email: string;
   ivaEnabled: boolean;
   ivaPct: number;
   igtfEnabled: boolean;

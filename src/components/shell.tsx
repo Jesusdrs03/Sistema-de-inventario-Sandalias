@@ -13,6 +13,7 @@ import { authApi } from "@/lib/auth";
 import { PERMISSIONS, ROLE_LABELS, type Module } from "@/lib/constants";
 import { fmtNum, fmtDateTime } from "@/lib/format";
 import { cx, Spinner } from "./ui";
+import { LegalLinks } from "./legal";
 
 export const NAV: { module: Module; href: string; label: string; icon: LucideIcon; group: string }[] = [
   { module: "dashboard", href: "/", label: "Inicio", icon: LayoutDashboard, group: "General" },
@@ -174,6 +175,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
             <LogOut className="h-4 w-4" />
           </button>
         </div>
+        <LegalLinks className="px-2 pt-1 text-[11px]" />
       </div>
     </nav>
   );

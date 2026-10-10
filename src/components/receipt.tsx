@@ -62,6 +62,8 @@ export function Receipt({ sale }: { sale: Sale }) {
       {sale.balanceUSD > 0 && <Row k="SALDO PENDIENTE" v={fmtUSD(sale.balanceUSD)} />}
       <div className={line} />
       <p className="text-center">{settings.receiptFooter}</p>
+      <p className="mt-1 text-center text-[10px] font-bold">*** DOCUMENTO NO FISCAL ***</p>
+      <p className="text-center text-[10px]">Solicite su factura fiscal. Términos y privacidad: {typeof window !== "undefined" ? window.location.host : ""}/terminos</p>
     </div>
   );
 }

@@ -41,10 +41,11 @@ function ClientForm({ open, onClose, client, initial, onSaved }: ClientFormProps
       const dup = same.find((c) => c.id !== client?.id);
       if (dup) throw new Error(`Ya existe un cliente con la cédula/RIF ${data.docId}: ${dup.name}`);
       let id = client?.id;
-      if (id) await db.update("clients", id, data);
+      // Una vez registrado, solo se pueden cambiar el teléfono y la dirección
+      if (id) await db.update("clients", id, { phone: f.phone?.trim() ?? "", address: f.address?.trim() ?? "" });
       else id = await db.add("clients", { ...data, createdAt: new Date().toISOString() });
       toast(client ? "Cliente actualizado" : "Cliente registrado");
-      onSaved?.({ ...data, id });
+      onSaved?.(client ? { ...client, phone: f.phone, address: f.address } : { ...data, id });
       onClose();
     } catch (e) {
       toast((e as Error).message, "error");
@@ -53,29 +54,35 @@ function ClientForm({ open, onClose, client, initial, onSaved }: ClientFormProps
     }
   };
 
+  const locked = !!client;
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setF({ ...f, [k]: e.target.value });
 
   return (
     <Modal open={open} onClose={onClose} title={client ? "Editar cliente" : "Nuevo cliente"}>
       <form onSubmit={save} className="grid gap-4 sm:grid-cols-2">
+        {locked && (
+          <p className="rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:bg-amber-900/30 dark:text-amber-200 sm:col-span-2">
+            Por seguridad, de un cliente ya registrado solo se pueden modificar el <b>teléfono</b> y la <b>dirección</b>.
+          </p>
+        )}
         <Field label="Nombre o razón social *" className="sm:col-span-2">
-          <input className="input" value={f.name} onChange={set("name")} required autoFocus />
+          <input className="input" value={f.name} onChange={set("name")} required autoFocus={!locked} disabled={locked} />
         </Field>
         <Field label="Cédula / RIF *">
-          <input className="input" value={f.docId} onChange={set("docId")} placeholder="V-12345678" required />
+          <input className="input" value={f.docId} onChange={set("docId")} placeholder="V-12345678" required disabled={locked} />
         </Field>
         <Field label="Tipo">
-          <select className="input" value={f.type} onChange={set("type")}>
+          <select className="input" value={f.type} onChange={set("type")} disabled={locked}>
             <option value="detal">Detal</option>
             <option value="mayorista">Mayorista</option>
           </select>
         </Field>
         <Field label="Teléfono">
-          <input className="input" value={f.phone} onChange={set("phone")} placeholder="0414-1234567" />
+          <input className="input" value={f.phone} onChange={set("phone")} placeholder="0414-1234567" autoFocus={locked} />
         </Field>
         <Field label="Correo">
-          <input className="input" type="email" value={f.email} onChange={set("email")} />
+          <input className="input" type="email" value={f.email} onChange={set("email")} disabled={locked} />
         </Field>
         <Field label="Dirección" className="sm:col-span-2">
           <input className="input" value={f.address} onChange={set("address")} />

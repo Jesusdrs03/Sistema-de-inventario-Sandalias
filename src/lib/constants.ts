@@ -113,6 +113,7 @@ export const DEFAULT_SETTINGS: Settings = {
   rif: "J-00000000-0",
   address: "Venezuela",
   phone: "",
+  email: "",
   ivaEnabled: false,
   ivaPct: 16,
   igtfEnabled: true,

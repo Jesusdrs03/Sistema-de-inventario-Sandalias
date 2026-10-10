@@ -6,6 +6,8 @@ import { authApi, authError } from "@/lib/auth";
 import { useApp, useToast } from "@/components/providers";
 import { Spinner } from "@/components/ui";
 import { DEMO_ACCOUNTS } from "@/lib/seed";
+import Link from "next/link";
+import { LegalLinks } from "@/components/legal";
 import { ROLE_LABELS } from "@/lib/constants";
 import type { Role } from "@/lib/types";
 
@@ -19,6 +21,7 @@ export default function LoginPage() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const [setup, setSetup] = useState(false);
+  const [accepted, setAccepted] = useState(false);
 
   useEffect(() => {
     if (user) router.replace("/");
@@ -35,6 +38,7 @@ export default function LoginPage() {
     try {
       if (setup) {
         if (!name.trim()) throw new Error("Escribe tu nombre");
+        if (!accepted) throw new Error("Debes aceptar los Términos y Condiciones y la Política de Privacidad");
         await authApi.setupAdmin(name.trim(), email, password);
         toast("Administrador creado. ¡Bienvenido!");
       } else {
@@ -142,6 +146,22 @@ export default function LoginPage() {
             </div>
             {(err || sessionErr) && (
               <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-900/30 dark:text-red-300">{err || sessionErr}</p>
+            )}
+            {setup ? (
+              <label className="flex items-start gap-2 text-xs text-slate-600 dark:text-slate-400">
+                <input type="checkbox" className="mt-0.5" checked={accepted} onChange={(e) => setAccepted(e.target.checked)} />
+                <span>
+                  He leído y acepto los{" "}
+                  <Link href="/terminos" target="_blank" className="text-brand-600 underline">Términos y Condiciones</Link> y la{" "}
+                  <Link href="/privacidad" target="_blank" className="text-brand-600 underline">Política de Privacidad</Link>.
+                </span>
+              </label>
+            ) : (
+              <p className="text-xs text-slate-500">
+                Al ingresar aceptas los{" "}
+                <Link href="/terminos" className="text-brand-600 hover:underline">Términos y Condiciones</Link> y la{" "}
+                <Link href="/privacidad" className="text-brand-600 hover:underline">Política de Privacidad</Link>.
+              </p>
             )}
             <button className="btn-primary w-full py-2.5" disabled={busy || authLoading}>
               {busy && <Spinner className="h-4 w-4 text-white" />}

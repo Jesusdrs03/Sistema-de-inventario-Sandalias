@@ -32,6 +32,11 @@ service cloud.firestore {
       allow create: if signedIn() && !exists(setupPath());
       allow update, delete: if false;
     }
+    // Datos públicos de la empresa (para las páginas legales, sin iniciar sesión)
+    match /meta/public {
+      allow read: if true;
+      allow write: if hasRole(['admin']);
+    }
     match /meta/settings {
       allow read: if active();
       allow write: if hasRole(['admin']);
@@ -63,7 +68,9 @@ service cloud.firestore {
       allow delete: if hasRole(['admin']);
     }
     match /suppliers/{id} {
-      allow read, create, update: if hasRole(['admin', 'gerente', 'almacen']);
+      allow read, create: if hasRole(['admin', 'gerente', 'almacen']);
+      // Una vez registrado solo se pueden cambiar teléfono y dirección
+      allow update: if hasRole(['admin', 'gerente', 'almacen']) && onlyChanges(['phone', 'address']);
       allow delete: if hasRole(['admin']);
     }
 
@@ -84,7 +91,9 @@ service cloud.firestore {
       allow update, delete: if false;
     }
     match /clients/{id} {
-      allow read, create, update: if hasRole(['admin', 'gerente', 'vendedor']);
+      allow read, create: if hasRole(['admin', 'gerente', 'vendedor']);
+      // Una vez registrado solo se pueden cambiar teléfono y dirección
+      allow update: if hasRole(['admin', 'gerente', 'vendedor']) && onlyChanges(['phone', 'address']);
       allow delete: if hasRole(['admin']);
     }
 
