@@ -6,7 +6,7 @@ import { useCollection } from "@/lib/hooks";
 import { Badge, Empty, Field, Loading, Modal, PageHeader, Spinner, Stat, Tabs, cx } from "@/components/ui";
 import { can } from "@/lib/constants";
 import { downloadCSV, endOfDay, fmtDateTime, fmtInt, fmtUSD, localDay, sortSizes, startOfDay, totalStock } from "@/lib/format";
-import { adjustProductStock } from "@/lib/services";
+import { StockAdjustModal } from "@/components/stock-adjust";
 import type { Movement, Product } from "@/lib/types";
 
 const TYPE_LABEL: Record<string, { label: string; tone: "green" | "red" | "blue" | "amber" | "violet" | "slate" }> = {
@@ -95,14 +95,14 @@ export default function InventoryPage() {
                           </td>
                           <td>
                             <div className="flex justify-end gap-1">
-                              <button className="btn-icon btn-ghost text-emerald-600" title="Entrada" onClick={() => setAdj({ p, type: "entrada" })} aria-label="Entrada">
-                                <ArrowDownCircle className="h-4 w-4" />
+                              <button className="btn-success btn-sm" title="Reponer / entrada de mercancía" onClick={() => setAdj({ p, type: "entrada" })} aria-label="Entrada">
+                                <ArrowDownCircle className="h-3.5 w-3.5" /> Reponer
                               </button>
-                              <button className="btn-icon btn-ghost text-red-500" title="Salida" onClick={() => setAdj({ p, type: "salida" })} aria-label="Salida">
-                                <ArrowUpCircle className="h-4 w-4" />
+                              <button className="btn-secondary btn-sm text-red-600" title="Salida de mercancía" onClick={() => setAdj({ p, type: "salida" })} aria-label="Salida">
+                                <ArrowUpCircle className="h-3.5 w-3.5" /> Salida
                               </button>
-                              <button className="btn-icon btn-ghost text-amber-600" title="Ajuste (conteo físico)" onClick={() => setAdj({ p, type: "ajuste" })} aria-label="Ajuste">
-                                <SlidersHorizontal className="h-4 w-4" />
+                              <button className="btn-secondary btn-sm text-amber-600" title="Ajuste por conteo físico" onClick={() => setAdj({ p, type: "ajuste" })} aria-label="Ajuste">
+                                <SlidersHorizontal className="h-3.5 w-3.5" /> Ajuste
                               </button>
                             </div>
                           </td>
@@ -120,7 +120,7 @@ export default function InventoryPage() {
       ) : (
         <Kardex products={products} />
       )}
-      {adj && <AdjustModal product={adj.p} type={adj.type} onClose={() => setAdj(null)} />}
+      {adj && <StockAdjustModal product={adj.p} type={adj.type} onClose={() => setAdj(null)} />}
     </div>
   );
 }
@@ -213,70 +213,5 @@ function Kardex({ products }: { products: Product[] }) {
         )}
       </div>
     </>
-  );
-}
-
-function AdjustModal({ product, type, onClose }: { product: Product; type: "entrada" | "salida" | "ajuste"; onClose: () => void }) {
-  const { user } = useApp();
-  const toast = useToast();
-  const sizes = sortSizes(Object.keys(product.sizes));
-  const [vals, setVals] = useState<Record<string, string>>(
-    Object.fromEntries(sizes.map((z) => [z, type === "ajuste" ? String(product.sizes[z]) : ""])),
-  );
-  const [note, setNote] = useState("");
-  const [busy, setBusy] = useState(false);
-  const titles = { entrada: "Entrada de mercancía", salida: "Salida de mercancía", ajuste: "Ajuste por conteo físico" };
-
-  const save = async () => {
-    setBusy(true);
-    try {
-      const changes = Object.fromEntries(Object.entries(vals).map(([k, v]) => [k, Math.max(0, parseInt(v) || 0)]));
-      await adjustProductStock(product.id, changes, type, note.trim(), user!);
-      toast("Inventario actualizado");
-      onClose();
-    } catch (e) {
-      toast((e as Error).message, "error");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  return (
-    <Modal
-      open
-      onClose={onClose}
-      title={titles[type]}
-      footer={
-        <>
-          <button className="btn-secondary" onClick={onClose}>Cancelar</button>
-          <button className="btn-primary" onClick={save} disabled={busy}>
-            {busy && <Spinner className="h-4 w-4 text-white" />} Registrar
-          </button>
-        </>
-      }
-    >
-      <p className="mb-3 text-sm font-medium">{product.name} · {product.color}</p>
-      <p className="mb-3 text-xs text-slate-500">
-        {type === "ajuste" ? "Escribe la cantidad REAL contada por talla." : `Cantidad a ${type === "entrada" ? "sumar" : "restar"} por talla.`}
-      </p>
-      <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-        {sizes.map((z) => (
-          <div key={z} className="rounded-xl border p-2 text-center dark:border-slate-700">
-            <p className="text-xs font-semibold">Talla {z}</p>
-            <p className="text-[11px] text-slate-500">Actual: {product.sizes[z]}</p>
-            <input
-              type="number"
-              min={0}
-              className="mt-1 w-full rounded-lg bg-slate-50 py-1 text-center text-sm outline-none focus:ring-2 focus:ring-brand-200 dark:bg-slate-800"
-              value={vals[z]}
-              onChange={(e) => setVals({ ...vals, [z]: e.target.value })}
-            />
-          </div>
-        ))}
-      </div>
-      <Field label="Motivo / nota" className="mt-4">
-        <input className="input" value={note} onChange={(e) => setNote(e.target.value)} placeholder={type === "salida" ? "Ej: muestra, defecto, traslado" : "Ej: compra, devolución, conteo"} />
-      </Field>
-    </Modal>
   );
 }

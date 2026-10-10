@@ -6,6 +6,8 @@ export interface AppUser {
   email: string;
   role: Role;
   active: boolean;
+  /** El administrador puede activarle una guía de ayuda en cada módulo */
+  tutorial?: boolean;
   createdAt?: string;
 }
 

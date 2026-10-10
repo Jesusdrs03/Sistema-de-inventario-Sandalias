@@ -5,38 +5,19 @@ import { useEffect, useState } from "react";
 import {
   LayoutDashboard, ShoppingCart, Receipt, Package, Boxes, Factory, Layers, Users, Truck, HandCoins,
   Wallet, Calculator, BarChart3, UserCog, Settings, LogOut, Menu, X, Moon, Sun, RefreshCw, Footprints,
-  AlertTriangle,
+  AlertTriangle, GraduationCap,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useApp, useToast } from "./providers";
 import { authApi } from "@/lib/auth";
-import { PERMISSIONS, ROLE_LABELS, type Module } from "@/lib/constants";
+import { PERMISSIONS, ROLE_LABELS } from "@/lib/constants";
+import { NAV, moduleForPath } from "./shell-nav";
+import { TutorialCard, TutorialGuide } from "./tutorial";
 import { fmtNum, fmtDateTime } from "@/lib/format";
 import { cx, Spinner } from "./ui";
 import { LegalLinks } from "./legal";
 
-export const NAV: { module: Module; href: string; label: string; icon: LucideIcon; group: string }[] = [
-  { module: "dashboard", href: "/", label: "Inicio", icon: LayoutDashboard, group: "General" },
-  { module: "pos", href: "/pos", label: "Punto de venta", icon: ShoppingCart, group: "Ventas" },
-  { module: "ventas", href: "/ventas", label: "Historial de ventas", icon: Receipt, group: "Ventas" },
-  { module: "cobranzas", href: "/cobranzas", label: "Cuentas por cobrar", icon: HandCoins, group: "Ventas" },
-  { module: "clientes", href: "/clientes", label: "Clientes", icon: Users, group: "Ventas" },
-  { module: "caja", href: "/caja", label: "Cierre de caja", icon: Calculator, group: "Ventas" },
-  { module: "productos", href: "/productos", label: "Productos", icon: Package, group: "Inventario" },
-  { module: "inventario", href: "/inventario", label: "Inventario y kardex", icon: Boxes, group: "Inventario" },
-  { module: "produccion", href: "/produccion", label: "Producción", icon: Factory, group: "Fábrica" },
-  { module: "materiales", href: "/materiales", label: "Materia prima", icon: Layers, group: "Fábrica" },
-  { module: "proveedores", href: "/proveedores", label: "Proveedores", icon: Truck, group: "Fábrica" },
-  { module: "gastos", href: "/gastos", label: "Gastos", icon: Wallet, group: "Administración" },
-  { module: "reportes", href: "/reportes", label: "Reportes", icon: BarChart3, group: "Administración" },
-  { module: "usuarios", href: "/usuarios", label: "Usuarios y roles", icon: UserCog, group: "Administración" },
-  { module: "configuracion", href: "/configuracion", label: "Configuración", icon: Settings, group: "Administración" },
-];
-
-export function moduleForPath(path: string): Module | undefined {
-  if (path === "/") return "dashboard";
-  return NAV.find((n) => n.href !== "/" && path.startsWith(n.href))?.module;
-}
+export { NAV, moduleForPath };
 
 function RateWidget() {
   const { rate } = useApp();
@@ -104,6 +85,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const path = usePathname();
   const [open, setOpen] = useState(false);
+  const [guide, setGuide] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) router.replace("/login");
@@ -201,6 +183,11 @@ export function Shell({ children }: { children: React.ReactNode }) {
           </button>
           <div className="flex-1" />
           {mode === "demo" && <span className="badge hidden bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 sm:inline-flex">Modo demo</span>}
+          {user.tutorial && (
+            <button className="btn-secondary btn-sm" onClick={() => setGuide(true)} title="Guía del sistema">
+              <GraduationCap className="h-4 w-4" /> <span className="hidden sm:inline">Guía</span>
+            </button>
+          )}
           <RateWidget />
           <ThemeToggle />
         </header>
@@ -213,9 +200,13 @@ export function Shell({ children }: { children: React.ReactNode }) {
               <Link href="/" className="btn-primary">Volver al inicio</Link>
             </div>
           ) : (
-            children
+            <>
+              {user.tutorial && <TutorialCard user={user} module={current} onOpenGuide={() => setGuide(true)} />}
+              {children}
+            </>
           )}
         </main>
+        {user.tutorial && <TutorialGuide user={user} open={guide} onClose={() => setGuide(false)} />}
       </div>
     </div>
   );

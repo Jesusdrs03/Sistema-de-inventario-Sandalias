@@ -19,6 +19,15 @@ export default function UsersPage() {
   const { rows, loading } = useCollection<AppUser>("users", { orderBy: "name" });
   const [edit, setEdit] = useState<AppUser | null | undefined>(undefined);
 
+  const toggleTutorial = async (u: AppUser) => {
+    try {
+      await db.update("users", u.id, { tutorial: !u.tutorial });
+      toast(`Tutorial ${!u.tutorial ? "activado" : "desactivado"} para ${u.name}`);
+    } catch (e) {
+      toast((e as Error).message, "error");
+    }
+  };
+
   const reset = async (u: AppUser) => {
     try {
       await authApi.resetPassword(u.email);
@@ -41,7 +50,7 @@ export default function UsersPage() {
         ) : rows.length ? (
           <div className="overflow-x-auto">
             <table className="table">
-              <thead><tr><th>Usuario</th><th>Rol</th><th>Estado</th><th></th></tr></thead>
+              <thead><tr><th>Usuario</th><th>Rol</th><th>Estado</th><th>Tutorial</th><th></th></tr></thead>
               <tbody>
                 {rows.map((u) => (
                   <tr key={u.id}>
@@ -53,6 +62,21 @@ export default function UsersPage() {
                     </td>
                     <td><Badge tone={roleTone[u.role]}>{ROLE_LABELS[u.role]}</Badge></td>
                     <td>{u.active ? <Badge tone="green">Activo</Badge> : <Badge>Inactivo</Badge>}</td>
+                    <td>
+                      <button
+                        role="switch"
+                        aria-checked={!!u.tutorial}
+                        aria-label={`Tutorial de ${u.name}`}
+                        onClick={() => toggleTutorial(u)}
+                        className="flex items-center gap-2 text-xs"
+                        title={u.tutorial ? "Desactivar el tutorial" : "Activar el tutorial"}
+                      >
+                        <span className={`relative inline-flex h-5 w-9 rounded-full transition ${u.tutorial ? "bg-sky-500" : "bg-slate-300 dark:bg-slate-700"}`}>
+                          <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all ${u.tutorial ? "left-[18px]" : "left-0.5"}`} />
+                        </span>
+                        {u.tutorial ? "Activo" : "Apagado"}
+                      </button>
+                    </td>
                     <td>
                       <div className="flex justify-end gap-1">
                         {mode === "firebase" && <button className="btn-icon btn-ghost" title="Enviar correo para restablecer contraseña" onClick={() => reset(u)} aria-label="Restablecer contraseña"><KeyRound className="h-4 w-4" /></button>}
@@ -112,14 +136,15 @@ function UserForm({ u, self, onClose }: { u: AppUser | null; self: boolean; onCl
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<Role>(u?.role ?? "vendedor");
   const [active, setActive] = useState(u?.active ?? true);
+  const [tutorial, setTutorial] = useState(u?.tutorial ?? true);
   const [busy, setBusy] = useState(false);
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
     try {
-      if (u) await db.update("users", u.id, { name: name.trim(), role, active });
-      else await authApi.createUser(name.trim(), email, password, role);
+      if (u) await db.update("users", u.id, self ? { name: name.trim(), tutorial } : { name: name.trim(), role, active, tutorial });
+      else await authApi.createUser(name.trim(), email, password, role, tutorial);
       toast(u ? "Usuario actualizado" : "Usuario creado");
       onClose();
     } catch (e) {
@@ -153,6 +178,13 @@ function UserForm({ u, self, onClose }: { u: AppUser | null; self: boolean; onCl
           </div>
           {self && <p className="mt-1 text-xs text-slate-500">No puedes cambiar tu propio rol.</p>}
         </div>
+        <label className="flex items-start gap-2 rounded-xl bg-sky-50 p-3 text-sm dark:bg-sky-900/20">
+          <input type="checkbox" className="mt-0.5" checked={tutorial} onChange={(e) => setTutorial(e.target.checked)} />
+          <span>
+            <b>Mostrar tutorial</b>
+            <span className="block text-xs text-slate-500">Al entrar a cada apartado verá una explicación de para qué sirve y cómo usarlo, y un botón &quot;Guía&quot; arriba.</span>
+          </span>
+        </label>
         {u && !self && (
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} /> Usuario activo (puede iniciar sesión)</label>
         )}

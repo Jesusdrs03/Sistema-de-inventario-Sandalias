@@ -33,7 +33,7 @@ export function seedDemoData(): Store {
   };
 
   DEMO_ACCOUNTS.forEach((u) => {
-    s.users[u.id] = { name: u.name, email: u.email, role: u.role, active: true, createdAt: iso };
+    s.users[u.id] = { name: u.name, email: u.email, role: u.role, active: true, tutorial: u.role !== "admin", createdAt: iso };
     s._auth[u.email] = { uid: u.id, password: u.password };
   });
 
