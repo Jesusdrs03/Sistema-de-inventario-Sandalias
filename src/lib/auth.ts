@@ -14,7 +14,7 @@ export interface AuthAPI {
   onChange(cb: (user: AppUser | null, error?: string) => void): () => void;
   login(email: string, password: string): Promise<void>;
   logout(): Promise<void>;
-  createUser(name: string, email: string, password: string, role: Role): Promise<void>;
+  createUser(name: string, email: string, password: string, role: Role, tutorial?: boolean): Promise<void>;
   resetPassword(email: string): Promise<void>;
   needsSetup(): Promise<boolean>;
   setupAdmin(name: string, email: string, password: string): Promise<void>;
@@ -64,13 +64,13 @@ function firebaseAuth(): AuthAPI {
     async logout() {
       await signOut(auth());
     },
-    async createUser(name, email, password, role) {
+    async createUser(name, email, password, role, tutorial = true) {
       const secAuth = getAuthFor(getSecondaryApp());
       const cred = await createUserWithEmailAndPassword(secAuth, email.trim(), password);
       await updateProfile(cred.user, { displayName: name });
       await signOut(secAuth);
       await db.set("users", cred.user.uid, {
-        name, email: email.trim().toLowerCase(), role, active: true, createdAt: new Date().toISOString(),
+        name, email: email.trim().toLowerCase(), role, active: true, tutorial, createdAt: new Date().toISOString(),
       });
     },
     async resetPassword(email) {
@@ -90,7 +90,7 @@ function firebaseAuth(): AuthAPI {
         const setup = await tx.get("meta", "setup");
         if (setup) throw new Error("El sistema ya fue configurado");
         tx.set("meta", "setup", { done: true, at: now, by: uid });
-        tx.set("users", uid, { name, email: email.trim().toLowerCase(), role: "admin", active: true, createdAt: now });
+        tx.set("users", uid, { name, email: email.trim().toLowerCase(), role: "admin", active: true, tutorial: true, createdAt: now });
       });
     },
   };
@@ -134,13 +134,13 @@ function demoAuth(): AuthAPI {
       window.sessionStorage.removeItem(SESSION_KEY);
       notify();
     },
-    async createUser(name, email, password, role) {
+    async createUser(name, email, password, role, tutorial = true) {
       const key = email.trim().toLowerCase();
       if (password.length < 6) throw { code: "auth/weak-password" };
       if (await db.getDoc("_auth", key)) throw { code: "auth/email-already-in-use" };
       const uid = db.newId();
       await db.set("_auth", key, { uid, password });
-      await db.set("users", uid, { name, email: key, role, active: true, createdAt: new Date().toISOString() });
+      await db.set("users", uid, { name, email: key, role, active: true, tutorial, createdAt: new Date().toISOString() });
     },
     async resetPassword() {
       throw new Error("En modo demostración usa la contraseña: demo123");

@@ -21,8 +21,8 @@ service cloud.firestore {
         || (signedIn() && request.auth.uid == uid
             && request.resource.data.role == 'admin'
             && !exists(setupPath()) && existsAfter(setupPath()));
-      // Un admin no puede cambiar su propio rol ni desactivarse
-      allow update: if hasRole(['admin']) && (uid != request.auth.uid || onlyChanges(['name']));
+      // Un admin no puede cambiar su propio rol ni desactivarse (sí su nombre y su tutorial)
+      allow update: if hasRole(['admin']) && (uid != request.auth.uid || onlyChanges(['name', 'tutorial']));
       allow delete: if false;
     }
 

@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
-import { Plus, Search, Pencil, Trash2, Package, Download, X } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, Package, PackagePlus, Download, X } from "lucide-react";
+import { StockAdjustModal } from "@/components/stock-adjust";
 import { useApp, useToast } from "@/components/providers";
 import { useCollection } from "@/lib/hooks";
 import { Badge, ConfirmModal, Empty, Field, Loading, Modal, PageHeader, Spinner } from "@/components/ui";
@@ -18,6 +19,7 @@ export default function ProductsPage() {
   const [stockF, setStockF] = useState("todos");
   const [edit, setEdit] = useState<Product | null | undefined>(undefined);
   const [del, setDel] = useState<Product | null>(null);
+  const [restock, setRestock] = useState<Product | null>(null);
   const editable = can.editProducts(user?.role);
   const costs = can.seeCosts(user?.role);
 
@@ -161,6 +163,9 @@ export default function ProductsPage() {
                       {editable && (
                         <td>
                           <div className="flex justify-end gap-1">
+                            <button className="btn-success btn-sm" onClick={() => setRestock(p)} title="Reponer stock">
+                              <PackagePlus className="h-3.5 w-3.5" /> Reponer
+                            </button>
                             <button className="btn-icon btn-ghost" onClick={() => setEdit(p)} aria-label="Editar">
                               <Pencil className="h-4 w-4" />
                             </button>
@@ -183,7 +188,17 @@ export default function ProductsPage() {
         )}
       </div>
 
-      {edit !== undefined && <ProductForm product={edit} onClose={() => setEdit(undefined)} />}
+      {edit !== undefined && (
+        <ProductForm
+          product={edit}
+          onClose={() => setEdit(undefined)}
+          onRestock={(p) => {
+            setEdit(undefined);
+            setRestock(p);
+          }}
+        />
+      )}
+      {restock && <StockAdjustModal product={rows.find((r) => r.id === restock.id) ?? restock} type="entrada" onClose={() => setRestock(null)} />}
       <ConfirmModal
         open={!!del}
         title="Eliminar producto"
@@ -197,7 +212,7 @@ export default function ProductsPage() {
   );
 }
 
-function ProductForm({ product, onClose }: { product: Product | null; onClose: () => void }) {
+function ProductForm({ product, onClose, onRestock }: { product: Product | null; onClose: () => void; onRestock: (p: Product) => void }) {
   const { settings, rate, user } = useApp();
   const toast = useToast();
   const isNew = !product;
@@ -311,7 +326,14 @@ function ProductForm({ product, onClose }: { product: Product | null; onClose: (
 
         <div>
           <div className="mb-2 flex items-center justify-between">
-            <p className="label mb-0">{isNew ? "Tallas y stock inicial" : "Tallas (el stock se ajusta en Inventario)"}</p>
+            <p className="label mb-0">
+              {isNew ? "Tallas y stock inicial" : "Tallas y stock actual"}
+              {!isNew && (
+                <button type="button" className="btn-success btn-sm ml-2" onClick={() => onRestock(product!)}>
+                  <PackagePlus className="h-3.5 w-3.5" /> Reponer stock
+                </button>
+              )}
+            </p>
             <div className="flex gap-2">
               <input className="input w-24 py-1" placeholder="Talla" value={newSize} onChange={(e) => setNewSize(e.target.value)} />
               <button
